@@ -1,0 +1,14 @@
+# Microsoft Agent Framework (public preview)
+agent-framework>=1.0.0b251209
+
+# Azure identity for Foundry / Azure OpenAI auth
+azure-identity>=1.19.0
+
+# Dev tooling
+python-dotenv>=1.0.0
+
+# Optional — Azure AI Search for real KB integration
+# azure-search-documents>=11.6.0
+
+# Optional — Salesforce / Zendesk CRM
+# simple-salesforce>=1.12.5
