@@ -44,7 +44,9 @@ def search_knowledge_base(query: str) -> str:
     #   results = client.search(query, top=5)
     #   return "\n".join(r["content"] for r in results)
     # ─────────────────────────────────────────────────────────────────────────
-    hits = [v for k, v in _KB.items() if k.lower() in query.lower()]
+    # Compute query_lower once; _KB keys are already lowercase so no .lower() needed on them
+    query_lower = query.lower()
+    hits = [v for k, v in _KB.items() if k in query_lower]
     return "\n".join(hits) if hits else "No matching KB entries."
 
 
@@ -136,15 +138,22 @@ def query_metric(metric_name: str, window_minutes: int = 60) -> str:
 # SEVERITY CLASSIFIER
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# Pre-built at module level so they are not reconstructed on every classify_severity call
+_SEV1_KEYWORDS: frozenset[str] = frozenset(
+    {"outage", "down", "unavailable", "data loss", "breach", "corruption"}
+)
+_SEV2_KEYWORDS: frozenset[str] = frozenset(
+    {"degraded", "unresponsive", "elevated", "timeout", "crash",
+     "error spike", "oomkilled", "crashloop"}
+)
+
+
 def classify_severity(symptoms: list[str]) -> str:
     """Classify incident severity from a symptom list → SEV-1/2/3."""
-    critical = {"outage", "down", "unavailable", "data loss", "breach", "corruption"}
-    high     = {"degraded", "unresponsive", "elevated", "timeout", "crash",
-                "error spike", "oomkilled", "crashloop"}
-    joined   = " ".join(symptoms).lower()
-    if any(k in joined for k in critical):
+    joined = " ".join(symptoms).lower()
+    if any(k in joined for k in _SEV1_KEYWORDS):
         return "SEV-1 (Critical) — potential full outage or data integrity risk"
-    if any(k in joined for k in high):
+    if any(k in joined for k in _SEV2_KEYWORDS):
         return "SEV-2 (High) — significant user impact, escalate immediately"
     return "SEV-3 (Medium) — partial degradation, monitor closely"
 
@@ -160,10 +169,8 @@ TOOL_HANDLERS: dict[str, callable] = {
     "classify_severity":        classify_severity,
 }
 
-
-def get_tool_schemas() -> list[dict]:
-    """Return OpenAI-compatible function tool schema list for all tools."""
-    return [
+# Built once at import time; get_tool_schemas() returns the same list on every call
+_TOOL_SCHEMAS: list[dict] = [
         {
             "type": "function",
             "function": {
@@ -235,3 +242,8 @@ def get_tool_schemas() -> list[dict]:
             },
         },
     ]
+
+
+def get_tool_schemas() -> list[dict]:
+    """Return OpenAI-compatible function tool schema list for all tools."""
+    return _TOOL_SCHEMAS

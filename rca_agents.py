@@ -386,6 +386,11 @@ _TIER_LABELS: dict[str, str] = {
     "RCAReporter_T4":               "T4",
 }
 
+
+def _unknown_tool(**_) -> str:
+    """Fallback used when an agent calls a tool name that is not registered."""
+    return "Unknown tool"
+
 async def stream_and_collect(workflow, incident: str) -> str:
     """
     Stream workflow events, dispatch tool calls to local handlers,
@@ -423,7 +428,7 @@ async def stream_and_collect(workflow, incident: str) -> str:
                     fn_name = tc.function.name
                     fn_args = json.loads(tc.function.arguments)
                     print(f"\n    🔧  {fn_name}({fn_args})", end="")
-                    result = TOOL_HANDLERS.get(fn_name, lambda **_: "Unknown tool")(
+                    result = TOOL_HANDLERS.get(fn_name, _unknown_tool)(
                         **fn_args
                     )
                     tool_outputs.append({"tool_call_id": tc.id, "output": str(result)})
